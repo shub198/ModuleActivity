@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.rajotiyapawan.moduleactivity.databinding.FragmentHomeBinding
+import com.rajotiyapawan.pokedex.PokedexMainActivity
 
 class HomeFragment : Fragment() {
 
@@ -33,6 +34,13 @@ class HomeFragment : Fragment() {
             textView.text = it
         }
         return root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        binding.textHome.setOnClickListener {
+            context?.let { it1 -> PokedexMainActivity.launchPokedex(it1) }
+        }
     }
 
     override fun onDestroyView() {

@@ -21,3 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Module Activity"
 include(":app")
+include(":network")
+include(":pokedex")
