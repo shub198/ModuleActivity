@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -69,4 +70,27 @@ fun ImageFromUrl(modifier: Modifier = Modifier, imageUrl: String, contentScale: 
             .memoryCachePolicy(CachePolicy.ENABLED)
             .build()
     )
+}
+
+fun getTypeColor(type: String): Color {
+    return when (type.lowercase()) {
+        "fire" -> Color(0xFFEE8130)
+        "water" -> Color(0xFF6390F0)
+        "grass" -> Color(0xFF7AC74C)
+        "electric" -> Color(0xFFF7D02C)
+        "fighting" -> Color(0xFFC22E28)
+        "psychic" -> Color(0xFFF95587)
+        "dragon" -> Color(0xFF6F35FC)
+        "dark" -> Color(0xFF705746)
+        "fairy" -> Color(0xFFD685AD)
+        "ghost" -> Color(0xFF735797)
+        "poison" -> Color(0xFFA33EA1)
+        "rock" -> Color(0xFFB6A136)
+        "ground" -> Color(0xFFE2BF65)
+        "ice" -> Color(0xFF96D9D6)
+        "bug" -> Color(0xFFA6B91A)
+        "steel" -> Color(0xFFB7B7CE)
+        "normal" -> Color(0xFFA8A77A)
+        else -> Color.LightGray
+    }
 }

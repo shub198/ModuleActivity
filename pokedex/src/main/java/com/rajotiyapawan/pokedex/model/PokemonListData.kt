@@ -11,3 +11,9 @@ data class NameItem(
     val name: String?,
     val url: String?
 )
+
+data class PokemonBasicInfo(
+    val id: Int,
+    val imageUrl: String,
+    val types: List<String>
+)

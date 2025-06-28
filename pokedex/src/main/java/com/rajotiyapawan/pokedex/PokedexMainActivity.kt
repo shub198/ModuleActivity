@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.rajotiyapawan.pokedex.ui.PokedexMainScreen
+import com.rajotiyapawan.pokedex.ui.PokemonDetailScreen
 import com.rajotiyapawan.pokedex.ui.theme.ModuleActivityTheme
 
 class PokedexMainActivity : ComponentActivity() {
@@ -57,8 +58,15 @@ class PokedexMainActivity : ComponentActivity() {
             modifier = modifier
         ) {
             composable("main") {
-                PokedexMainScreen(Modifier.fillMaxSize(), viewModel)
+                PokedexMainScreen(Modifier.fillMaxSize(), viewModel) {
+                    navController.navigate("detail")
+                }
             }
+
+            composable("detail") {
+                PokemonDetailScreen(Modifier.fillMaxSize(), viewModel)
+            }
+
         }
     }
 }

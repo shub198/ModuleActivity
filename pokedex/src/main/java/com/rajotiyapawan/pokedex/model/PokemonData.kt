@@ -9,7 +9,7 @@ data class PokemonData(
     @SerializedName("forms") var forms: ArrayList<NameItem>?,
     @SerializedName("game_indices") var gameIndices: ArrayList<GameIndices>?,
     @SerializedName("height") var height: Int? = null,
-    @SerializedName("held_items") var heldItems: ArrayList<String>? = null,
+    @SerializedName("held_items") var heldItems: ArrayList<HeldItem>? = null,
     @SerializedName("id") var id: Int? = null,
     @SerializedName("is_default") var isDefault: Boolean? = null,
     @SerializedName("location_area_encounters") var locationAreaEncounters: String? = null,
@@ -104,4 +104,8 @@ data class Other(
 data class OfficialArtwork(
     @SerializedName("front_default") val frontDefault: String?,
     @SerializedName("front_shiny") val frontShiny: String?,
+)
+
+data class HeldItem(
+    val item: NameItem
 )
