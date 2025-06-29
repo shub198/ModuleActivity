@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
@@ -28,8 +29,8 @@ val fontProvider = GoogleFont.Provider(
 )
 val montserratFont = GoogleFont("Montserrat")
 
-fun getFontFamily(weight: FontWeight = FontWeight.Normal, font: GoogleFont = montserratFont): FontFamily {
-    return FontFamily(Font(googleFont = font, fontProvider, weight = weight))
+fun getFontFamily(weight: FontWeight = FontWeight.Normal, fontStyle: FontStyle = FontStyle.Normal, font: GoogleFont = montserratFont): FontFamily {
+    return FontFamily(Font(googleFont = font, fontProvider, weight = weight, style = fontStyle))
 }
 
 fun String.capitalize(): String {

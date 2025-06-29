@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,12 +63,16 @@ fun PokedexMainScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel, i
 
 @Composable
 private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, list: List<NameItem>, itemSelected: (NameItem) -> Unit) {
-    LazyColumn(modifier.background(color = Color.Black), contentPadding = PaddingValues(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        itemsIndexed(list) { index, item ->
-            PokemonListItem(Modifier, item, viewModel, itemSelected = {
-                viewModel.getPokemonData(item)
-                itemSelected(item)
-            })
+    Scaffold { padding ->
+        LazyColumn(modifier
+            .background(color = Color.White)
+            .padding(padding), contentPadding = PaddingValues(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            itemsIndexed(list) { index, item ->
+                PokemonListItem(Modifier, item, viewModel, itemSelected = {
+                    viewModel.getPokemonData(item)
+                    itemSelected(item)
+                })
+            }
         }
     }
 }
@@ -74,6 +80,7 @@ private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewMode
 @Composable
 private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewModel: PokeViewModel, itemSelected: () -> Unit) {
     val detail = viewModel.pokemonDetails[item.name]
+    val width = LocalConfiguration.current.screenWidthDp
 
     LaunchedEffect(Unit) {
         if (detail == null) viewModel.fetchBasicDetail(item)
@@ -84,11 +91,11 @@ private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewM
         when (typeColors.size) {
             1 -> {
                 val base = typeColors[0]
-                val darker = base.copy(alpha = 1f).compositeOver(Color.Black.copy(alpha = 0.2f)) // Slight dark blend
+                val darker = Color.Black.copy(alpha = 0.3f).compositeOver(base.copy(alpha = 1f)) // Slight dark blend
                 Brush.linearGradient(
                     colors = listOf(base.copy(alpha = 0.8f), darker),
                     start = Offset.Zero,
-                    end = Offset(1450f, 0f)
+                    end = Offset(width * 3.6f, 0f)
                 )
             }
 
@@ -101,7 +108,7 @@ private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewM
                 ),
 //                colorStops = floatArrayOf(0.0f, 0.4f, 0.55f, 1.0f), // skewed to right
                 start = Offset.Zero,
-                end = Offset(1450f, 0f)
+                end = Offset(width * 3.6f, 0f)
             )
 
             else -> Brush.verticalGradient(colors = listOf(Color.LightGray, Color.DarkGray))

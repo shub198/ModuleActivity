@@ -1,46 +1,67 @@
 package com.rajotiyapawan.pokedex.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.rajotiyapawan.pokedex.PokeViewModel
+import com.rajotiyapawan.pokedex.model.Abilities
+import com.rajotiyapawan.pokedex.model.NameItem
 import com.rajotiyapawan.pokedex.model.PokemonData
-import com.rajotiyapawan.pokedex.ui.theme.waterBorder
-import com.rajotiyapawan.pokedex.ui.theme.waterType
-import com.rajotiyapawan.pokedex.ui.theme.waterTypeLight
-import com.rajotiyapawan.pokedex.utility.ImageFromUrl
 import com.rajotiyapawan.pokedex.utility.UiState
 import com.rajotiyapawan.pokedex.utility.capitalize
 import com.rajotiyapawan.pokedex.utility.getFontFamily
+import com.rajotiyapawan.pokedex.utility.getTypeColor
 import java.util.Locale
+
+enum class PokemonDataTabs {
+    About, Stats, Moves, Other
+}
 
 @Composable
 fun PokemonDetailScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel) {
@@ -58,9 +79,10 @@ fun PokemonDetailScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel)
     }
 }
 
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, data: PokemonData) {
+    val width = LocalConfiguration.current.screenWidthDp.dp
     val id = remember(data) {
         val id = data.id ?: 0
         if (id < 1000) {
@@ -69,161 +91,237 @@ private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
             id.toString()
         }
     }
-    Column(
-        modifier
-            .padding(8.dp)
-            .border(width = 1.dp, color = waterBorder, shape = RoundedCornerShape(10.dp))
-            .background(
-                color = waterType,
-                shape = RoundedCornerShape(10.dp)
-            )
-            .padding(8.dp)
-            .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Column(
+
+    val typeColors = data.types?.map { getTypeColor(it.type?.name ?: "") } ?: listOf()
+    Scaffold { padding ->
+        Box(
             Modifier
-                .fillMaxWidth()
-                .background(
-                    color = waterTypeLight,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .padding(6.dp)
+                .fillMaxSize()
+                .background(Color(0xfff5f5f5))
         ) {
-            Row(
-                Modifier
+            Canvas(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .height(IntrinsicSize.Max)
-                    .padding(4.dp)
+                    .height(500.dp)
             ) {
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text((data.name ?: "").capitalize(), fontFamily = getFontFamily(weight = FontWeight.Bold), fontSize = 24.sp)
+                val canvasWidth = size.width
+                val canvasHeight = size.height
+                // === Create the arc path ===
+                val arcHeight = 500f // height of the curved area
+                val path = Path().apply {
+                    moveTo(0f, 0f)
+                    arcTo(
+                        rect = Rect(
+                            left = -canvasWidth / 2f,
+                            top = 0f,
+                            right = canvasWidth * 1.5f,
+                            bottom = arcHeight * 2.5f
+                        ),
+                        startAngleDegrees = -180f,
+                        sweepAngleDegrees = -180f,
+                        forceMoveTo = false
+                    )
+                    lineTo(canvasWidth, 0f)
+                    close()
                 }
-                Box(
-                    Modifier
-                        .padding(start = 4.dp)
-                        .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp), contentAlignment = Alignment
-                        .Center
-                ) {
-                    Text("#$id", fontFamily = getFontFamily(weight = FontWeight.Bold), fontSize = 24.sp)
+
+                // === Draw the upper arc gradient ===
+                val gradientBrush =
+                    when (typeColors.size) {
+                        1 -> {
+                            val base = typeColors[0]
+                            val darker = base.copy(alpha = 1f).compositeOver(Color.Black.copy(alpha = 0.2f)) // Slight dark blend
+                            Brush.linearGradient(
+                                colors = listOf(base.copy(alpha = 0.8f), darker),
+                                start = Offset(0f, size.height),
+                                end = Offset(size.width, 0f)
+                            )
+                        }
+
+                        2 -> Brush.linearGradient(
+                            colors = listOf(
+                                typeColors[0].copy(alpha = 0.9f),
+                                typeColors[0].copy(alpha = 0.6f),
+                                typeColors[1].copy(alpha = 0.6f),
+                                typeColors[1].copy(alpha = 0.9f)
+                            ),
+//                colorStops = floatArrayOf(0.0f, 0.4f, 0.55f, 1.0f), // skewed to right
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width * 1.8f, -size.height * 0.2f)
+                        )
+
+                        else -> Brush.verticalGradient(colors = listOf(Color.LightGray, Color.DarkGray))
+                    }
+                drawPath(
+                    path = path,
+                    brush = gradientBrush
+                )
+            }
+            val selectedTab = remember { mutableStateOf(PokemonDataTabs.About) }
+            LazyColumn(Modifier.padding(padding), contentPadding = PaddingValues(horizontal = 16.dp)) {
+                stickyHeader {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.Default.FavoriteBorder, contentDescription = null)
+                    }
                 }
-            }
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .padding(4.dp)
-                    .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-            ) {
-                ImageFromUrl(imageUrl = data.sprites?.other?.officialArtwork?.frontDefault ?: "", modifier = Modifier.fillMaxSize())
-            }
-        }
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .background(
-                    color = waterTypeLight,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Type", fontFamily = getFontFamily(weight = FontWeight.Bold))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-                    .padding(vertical = 10.dp), contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    (data.types?.get(0)?.type?.name ?: "").capitalize(), fontFamily = getFontFamily(weight = FontWeight.SemiBold), modifier = Modifier
-                        .background(color = waterType, shape = RoundedCornerShape(4.dp))
-                        .padding(vertical = 2.dp, horizontal = 8.dp), color = Color.White
-                )
-            }
-        }
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .background(
-                    color = waterTypeLight,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Abilities", fontFamily = getFontFamily(weight = FontWeight.Bold))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-                    .padding(vertical = 10.dp), contentAlignment = Alignment.Center
-            ) {
-                LazyVerticalGrid(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 500.dp), columns = GridCells.Fixed(2)
-                ) {
-                    data.abilities?.let {
-                        items(it) { ability ->
-                            Column(Modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text((ability.ability?.name ?: "").capitalize(), textAlign = TextAlign.Center, fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 16.sp)
-                                if (ability.isHidden == true) {
-                                    Text("(Hidden Ability)", textAlign = TextAlign.Center, fontSize = 12.sp, fontFamily = getFontFamily(weight = FontWeight.SemiBold))
-                                }
+                item {
+                    Column {
+                        Text("#$id", fontFamily = getFontFamily(weight = FontWeight.SemiBold), color = Color.White)
+                        Text((data.name ?: "").capitalize(), fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 24.sp, color = Color.White)
+                        AsyncImage(data?.sprites?.other?.officialArtwork?.frontDefault, modifier = Modifier.fillMaxWidth(), contentDescription = null, contentScale = ContentScale.FillWidth)
+                    }
+                }
+                stickyHeader {
+                    TabBarRow(selectedTab.value.ordinal, { selectedTab.value = it })
+                }
+                when (selectedTab.value) {
+                    PokemonDataTabs.About -> {
+                        item {
+                            data.species?.let { AboutSpecies(viewModel = viewModel, species = it, color = typeColors[0]) }
+                        }
+                        item {
+                            data.abilities?.let {
+                                AboutAbilities(color = typeColors[0], viewModel = viewModel, modifier = Modifier, abilities = it)
                             }
                         }
                     }
+
+                    PokemonDataTabs.Stats -> {
+                        item { Text("Stats") }
+                    }
+
+                    PokemonDataTabs.Moves -> {
+                        item { Text("Moves") }
+                    }
+
+                    PokemonDataTabs.Other -> {
+                        item { Text("Other") }
+                    }
                 }
             }
         }
-        Row {
+    }
+
+}
+
+@Composable
+private fun TabBarRow(selectedTabIndex: Int, onTabSelected: (PokemonDataTabs) -> Unit) {
+    TabRow(
+        selectedTabIndex = selectedTabIndex,
+        containerColor = Color.Transparent,
+        divider = {},
+        indicator = { tabPositions ->
+            if (selectedTabIndex < tabPositions.size) {
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex])
+                )
+            }
+        }
+    ) {
+        PokemonDataTabs.entries.forEachIndexed { index, tab ->
+            Tab(
+                selected = selectedTabIndex == index,
+                onClick = { onTabSelected(tab) },
+                text = { Text(tab.name, color = Color.Black, fontFamily = getFontFamily(FontWeight.SemiBold), fontSize = 16.sp) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AboutSpecies(modifier: Modifier = Modifier, species: NameItem, color: Color, viewModel: PokeViewModel) {
+    LaunchedEffect(species.name) { viewModel.fetchPokemonAbout(species) }
+    val aboutData by viewModel.aboutData.collectAsState()
+    Box(
+        modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp), contentAlignment = Alignment.TopCenter
+    ) {
+        Surface(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+                .padding(4.dp),
+            color = Color.White,
+            shape = RoundedCornerShape(12.dp),
+            shadowElevation = 4.dp
+        ) {
             Column(
                 Modifier
-                    .weight(1f)
-                    .background(
-                        color = waterTypeLight,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+                    .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Height", fontFamily = getFontFamily(weight = FontWeight.Bold))
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-                        .padding(vertical = 10.dp), contentAlignment = Alignment.Center
-                ) {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text((data.height?.toDouble()?.div(10)).toString() + " m", fontFamily = getFontFamily(weight = FontWeight.SemiBold))
-                    }
-                }
+                Text(aboutData.genus, fontFamily = getFontFamily(weight = FontWeight.SemiBold), color = Color.Black, fontSize = 15.sp)
+                Text(aboutData.flavourText, fontFamily = getFontFamily(), color = Color.Black, fontSize = 15.sp)
             }
+        }
+        Box(
+            Modifier
+                .border(width = 1.dp, color = color, shape = RoundedCornerShape(50))
+                .background(color = Color.White, shape = RoundedCornerShape(50))
+                .padding(horizontal = 12.dp)
+        ) {
+            Text("Species", color = color, fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilities: ArrayList<Abilities>, viewModel: PokeViewModel) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp), contentAlignment = Alignment.TopCenter
+    ) {
+        Surface(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+                .padding(4.dp),
+            color = Color.White,
+            shape = RoundedCornerShape(12.dp),
+            shadowElevation = 4.dp
+        ) {
             Column(
                 Modifier
-                    .padding(start = 4.dp)
-                    .weight(1f)
-                    .background(
-                        color = waterTypeLight,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+                    .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Type", fontFamily = getFontFamily(weight = FontWeight.Bold))
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-                        .padding(vertical = 10.dp), contentAlignment = Alignment.Center
-                ) {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text((data.weight?.div(10)).toString() + " kg", fontFamily = getFontFamily(weight = FontWeight.SemiBold))
+                abilities.forEach { ability ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(color = color.copy(alpha = 0.5f), shape = RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row {
+                            Text((ability.ability?.name ?: "").capitalize(), color = color, fontFamily = getFontFamily(weight = FontWeight.SemiBold))
+                            if (ability.isHidden == true) {
+                                Text(" - Hidden", color = color.copy(alpha = 0.5f), fontFamily = getFontFamily(weight = FontWeight.SemiBold))
+
+                            }
+                        }
+                        Icon(Icons.Outlined.Info, contentDescription = null, tint = color)
                     }
+                    Spacer(Modifier.height(8.dp))
                 }
             }
+        }
+        Box(
+            Modifier
+                .border(width = 1.dp, color = color, shape = RoundedCornerShape(50))
+                .background(color = Color.White, shape = RoundedCornerShape(50))
+                .padding(horizontal = 12.dp)
+        ) {
+            Text("Abilities", color = color, fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 14.sp)
         }
     }
 }

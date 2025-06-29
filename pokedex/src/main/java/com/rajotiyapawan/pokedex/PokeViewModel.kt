@@ -8,6 +8,8 @@ import com.rajotiyapawan.network.ApiResponse
 import com.rajotiyapawan.network.NetworkRepository
 import com.rajotiyapawan.network.POKE_BaseUrl
 import com.rajotiyapawan.pokedex.model.NameItem
+import com.rajotiyapawan.pokedex.model.PokemonAbout
+import com.rajotiyapawan.pokedex.model.PokemonAboutDto
 import com.rajotiyapawan.pokedex.model.PokemonBasicInfo
 import com.rajotiyapawan.pokedex.model.PokemonData
 import com.rajotiyapawan.pokedex.model.PokemonListData
@@ -74,6 +76,29 @@ class PokeViewModel : ViewModel() {
                 }
             } else if (response is ApiResponse.Error) {
                 Log.e("FetchError", "Failed for ${item.name}: ${response.message}")
+            }
+        }
+    }
+
+    private var _aboutData = MutableStateFlow(PokemonAbout("", ""))
+    val aboutData get() = _aboutData
+    fun fetchPokemonAbout(item: NameItem?) {
+        viewModelScope.launch {
+            delay(100L) // Give some time between requests
+            val response = NetworkRepository.get<PokemonAboutDto>(item?.url ?: "")
+            if (response is ApiResponse.Success) {
+                val detail = response.data
+                _aboutData.value = PokemonAbout(
+                    flavourText = detail.flavor_text_entries
+                        .firstOrNull { it.language.name == "en" && it.version.name == "ruby" }
+                        ?.flavor_text
+                        ?.replace("\n", " ") ?: "",
+                    genus = detail.genera
+                        .firstOrNull { it.language.name == "en" }
+                        ?.genus ?: ""
+                )
+            } else if (response is ApiResponse.Error) {
+                Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
             }
         }
     }
