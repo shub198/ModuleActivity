@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,7 +81,6 @@ fun PokemonDetailScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, data: PokemonData) {
-    val width = LocalConfiguration.current.screenWidthDp.dp
     val id = remember(data) {
         val id = data.id ?: 0
         if (id < 1000) {
@@ -95,7 +93,7 @@ private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
     val typeColors = data.types?.map { getTypeColor(it.type?.name ?: "") } ?: listOf()
     Scaffold { padding ->
         Box(
-            Modifier
+            modifier
                 .fillMaxSize()
                 .background(Color(0xfff5f5f5))
         ) {
@@ -105,7 +103,6 @@ private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
                     .height(500.dp)
             ) {
                 val canvasWidth = size.width
-                val canvasHeight = size.height
                 // === Create the arc path ===
                 val arcHeight = 500f // height of the curved area
                 val path = Path().apply {
@@ -173,11 +170,11 @@ private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
                     Column {
                         Text("#$id", fontFamily = getFontFamily(weight = FontWeight.SemiBold), color = Color.White)
                         Text((data.name ?: "").capitalize(), fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 24.sp, color = Color.White)
-                        AsyncImage(data?.sprites?.other?.officialArtwork?.frontDefault, modifier = Modifier.fillMaxWidth(), contentDescription = null, contentScale = ContentScale.FillWidth)
+                        AsyncImage(data.sprites?.other?.officialArtwork?.frontDefault, modifier = Modifier.fillMaxWidth(), contentDescription = null, contentScale = ContentScale.FillWidth)
                     }
                 }
                 stickyHeader {
-                    TabBarRow(selectedTab.value.ordinal, { selectedTab.value = it })
+                    TabBarRow(selectedTab.value.ordinal) { selectedTab.value = it }
                 }
                 when (selectedTab.value) {
                     PokemonDataTabs.About -> {
@@ -295,6 +292,10 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
                     .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 abilities.forEach { ability ->
+                    val detail = viewModel.abilityDetails[ability.ability?.name ?: ""]
+                    LaunchedEffect(Unit) {
+                        if (detail == null) viewModel.getAbilityEffect(ability.ability)
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -312,6 +313,8 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
                         Icon(Icons.Outlined.Info, contentDescription = null, tint = color)
                     }
                     Spacer(Modifier.height(8.dp))
+                    Text(detail?.flavor_text ?: "", modifier = Modifier.fillMaxWidth(), fontSize = 16.sp)
+                    Spacer(Modifier.height(16.dp))
                 }
             }
         }

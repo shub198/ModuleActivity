@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.rajotiyapawan.network.ApiResponse
 import com.rajotiyapawan.network.NetworkRepository
 import com.rajotiyapawan.network.POKE_BaseUrl
+import com.rajotiyapawan.pokedex.model.AbilityEffect
 import com.rajotiyapawan.pokedex.model.NameItem
+import com.rajotiyapawan.pokedex.model.PokemonAbilityDto
 import com.rajotiyapawan.pokedex.model.PokemonAbout
 import com.rajotiyapawan.pokedex.model.PokemonAboutDto
 import com.rajotiyapawan.pokedex.model.PokemonBasicInfo
@@ -59,15 +61,15 @@ class PokeViewModel : ViewModel() {
         }
     }
 
-    fun fetchBasicDetail(item: NameItem) {
-        if (_pokemonDetails.containsKey(item.name)) return // already fetched
+    fun fetchBasicDetail(item: NameItem?) {
+        if (_pokemonDetails.containsKey(item?.name)) return // already fetched
 
         viewModelScope.launch {
             delay(100L) // Give some time between requests
-            val response = NetworkRepository.get<PokemonData>(item.url ?: "")
+            val response = NetworkRepository.get<PokemonData>(item?.url ?: "")
             if (response is ApiResponse.Success) {
                 val detail = response.data
-                item.name?.let { name ->
+                item?.name?.let { name ->
                     _pokemonDetails[name] = PokemonBasicInfo(
                         id = detail.id ?: 0,
                         imageUrl = detail.sprites?.other?.officialArtwork?.frontDefault ?: "",
@@ -75,7 +77,7 @@ class PokeViewModel : ViewModel() {
                     )
                 }
             } else if (response is ApiResponse.Error) {
-                Log.e("FetchError", "Failed for ${item.name}: ${response.message}")
+                Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
             }
         }
     }
@@ -103,4 +105,36 @@ class PokeViewModel : ViewModel() {
         }
     }
 
+    // Cache detail per Pokémon name
+    private val _abilityDetails = mutableStateMapOf<String, AbilityEffect>()
+    val abilityDetails: Map<String, AbilityEffect> get() = _abilityDetails
+
+    fun getAbilityEffect(item: NameItem?) {
+        if (_abilityDetails.containsKey(item?.name)) return // already fetched
+
+        viewModelScope.launch {
+            delay(100L) // Give some time between requests
+            val response = NetworkRepository.get<PokemonAbilityDto>(item?.url ?: "")
+            if (response is ApiResponse.Success) {
+                val detail = response.data
+                item?.name?.let { name ->
+                    _abilityDetails[name] = AbilityEffect(
+                        effect = detail.effect_entries
+                            .firstOrNull { it.language.name == "en" }
+                            ?.effect ?: "",
+                        short_effect = detail.effect_entries
+                            .firstOrNull { it.language.name == "en" }
+                            ?.short_effect ?: "",
+                        flavor_text = detail.flavor_text_entries
+                            .firstOrNull { it.language.name == "en" && it.version_group.name == "x-y" }
+                            ?.flavor_text
+                            ?.replace("\n", " ") ?: "",
+                        language = NameItem("", "")
+                    )
+                }
+            } else if (response is ApiResponse.Error) {
+                Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
+            }
+        }
+    }
 }
