@@ -2,7 +2,8 @@ package com.rajotiyapawan.pokedex.model
 
 data class PokemonAboutDto(
     val flavor_text_entries: List<FlavourEntry>,
-    val genera: List<Genus>
+    val genera: List<Genus>,
+    val gender_rate: Int
 )
 
 data class FlavourEntry(
@@ -19,8 +20,16 @@ data class Genus(
 
 data class PokemonAbout(
     val flavourText: String,
-    val genus: String
-)
+    val genus: String,
+    val femalePercentage: Double,
+    val malePercentage: Double
+) {
+    companion object {
+        fun init(): PokemonAbout {
+            return PokemonAbout("", "", 0.0, 0.0)
+        }
+    }
+}
 
 data class PokemonAbilityDto(
     val effect_entries: List<AbilityEffect>,

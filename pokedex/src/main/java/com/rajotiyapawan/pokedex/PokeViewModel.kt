@@ -9,6 +9,7 @@ import com.rajotiyapawan.network.NetworkRepository
 import com.rajotiyapawan.network.POKE_BaseUrl
 import com.rajotiyapawan.pokedex.model.AbilityEffect
 import com.rajotiyapawan.pokedex.model.NameItem
+import com.rajotiyapawan.pokedex.model.PokedexUserEvent
 import com.rajotiyapawan.pokedex.model.PokemonAbilityDto
 import com.rajotiyapawan.pokedex.model.PokemonAbout
 import com.rajotiyapawan.pokedex.model.PokemonAboutDto
@@ -17,11 +18,19 @@ import com.rajotiyapawan.pokedex.model.PokemonData
 import com.rajotiyapawan.pokedex.model.PokemonListData
 import com.rajotiyapawan.pokedex.utility.UiState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 class PokeViewModel : ViewModel() {
+
+    private var _userEvent = MutableSharedFlow<PokedexUserEvent>()
+    val userEvent = _userEvent
 
     private var _pokemonList: MutableStateFlow<UiState<PokemonListData>> = MutableStateFlow(UiState.Idle)
     val pokemonList = _pokemonList.asStateFlow()
@@ -30,9 +39,43 @@ class PokeViewModel : ViewModel() {
     private val _pokemonDetails = mutableStateMapOf<String, PokemonBasicInfo>()
     val pokemonDetails: Map<String, PokemonBasicInfo> get() = _pokemonDetails
 
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    fun onQueryChanged(query: String) {
+        _query.value = query
+    }
+
+    private var _searchResults = MutableStateFlow<List<NameItem>>(emptyList())
+    val searchResults = _searchResults.asStateFlow()
     init {
         getPokemonList()
+        initializeSearch()
 //        getPokemonData()
+    }
+
+    fun sendUserEvent(event: PokedexUserEvent) {
+        viewModelScope.launch {
+            _userEvent.emit(event)
+        }
+    }
+
+    private fun initializeSearch() {
+        viewModelScope.launch {
+            _query.debounce(500)
+                .distinctUntilChanged()
+                .collectLatest { query ->
+                    when (val response = pokemonList.value) {
+                        is UiState.Success -> {
+                            response.data.results?.let { results ->
+                                _searchResults.value = results.filter { it.name?.contains(query) == true }
+                            }
+                        }
+
+                        else -> {}
+                    }
+                }
+        }
     }
 
     private var _pokemonData = MutableStateFlow<UiState<PokemonData>>(UiState.Idle)
@@ -82,7 +125,7 @@ class PokeViewModel : ViewModel() {
         }
     }
 
-    private var _aboutData = MutableStateFlow(PokemonAbout("", ""))
+    private var _aboutData = MutableStateFlow(PokemonAbout.init())
     val aboutData get() = _aboutData
     fun fetchPokemonAbout(item: NameItem?) {
         viewModelScope.launch {
@@ -90,6 +133,7 @@ class PokeViewModel : ViewModel() {
             val response = NetworkRepository.get<PokemonAboutDto>(item?.url ?: "")
             if (response is ApiResponse.Success) {
                 val detail = response.data
+                val femalePercentage = (detail.gender_rate / 8.0) * 100
                 _aboutData.value = PokemonAbout(
                     flavourText = detail.flavor_text_entries
                         .firstOrNull { it.language.name == "en" && it.version.name == "ruby" }
@@ -97,7 +141,9 @@ class PokeViewModel : ViewModel() {
                         ?.replace("\n", " ") ?: "",
                     genus = detail.genera
                         .firstOrNull { it.language.name == "en" }
-                        ?.genus ?: ""
+                        ?.genus ?: "",
+                    femalePercentage = femalePercentage,
+                    malePercentage = 100 - femalePercentage
                 )
             } else if (response is ApiResponse.Error) {
                 Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")

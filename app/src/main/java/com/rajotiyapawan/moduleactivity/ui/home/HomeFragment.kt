@@ -41,6 +41,7 @@ class HomeFragment : Fragment() {
         binding.textHome.setOnClickListener {
             context?.let { it1 -> PokedexMainActivity.launchPokedex(it1) }
         }
+        binding.textHome.performClick()
     }
 
     override fun onDestroyView() {

@@ -7,14 +7,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -22,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +36,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -56,23 +65,89 @@ fun PokedexMainScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel, i
         }
 
         is UiState.Success -> {
-            response.data.results?.let { PokemonListUI(modifier, viewModel, it, itemSelected) }
+            response.data.results?.let { MainScreenUI(modifier, viewModel, itemSelected) }
         }
     }
 }
 
 @Composable
-private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, list: List<NameItem>, itemSelected: (NameItem) -> Unit) {
-    Scaffold { padding ->
-        LazyColumn(modifier
-            .background(color = Color.White)
-            .padding(padding), contentPadding = PaddingValues(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            itemsIndexed(list) { index, item ->
-                PokemonListItem(Modifier, item, viewModel, itemSelected = {
-                    viewModel.getPokemonData(item)
-                    itemSelected(item)
-                })
+private fun MainScreenUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, itemSelected: (NameItem) -> Unit) {
+    LaunchedEffect(Unit) { viewModel.onQueryChanged("") }
+    val focusManager = LocalFocusManager.current
+    Scaffold(modifier) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(color = Color.White)
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+                .noRippleClick { focusManager.clearFocus() }
+        ) {
+            Text(
+                "Pokedex", Modifier
+                    .fillMaxWidth(),
+                fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                fontSize = 28.sp, color = Color.Red, textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                SearchBar(Modifier
+                    .padding(end = 16.dp)
+                    .weight(1f), viewModel)
+                Icon(Icons.Outlined.Menu, contentDescription = null, tint = Color.Black)
             }
+            PokemonListUI(Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp), viewModel, itemSelected)
+        }
+    }
+}
+
+@Composable
+private fun SearchBar(modifier: Modifier = Modifier, viewModel: PokeViewModel) {
+    val query by viewModel.query.collectAsState()
+    BasicTextField(
+        value = query,
+        onValueChange = { viewModel.onQueryChanged(it) },
+        textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontFamily = getFontFamily()),
+        modifier = modifier
+            .height(50.dp)
+            .background(Color.Gray.copy(alpha = 0.2f), shape = RoundedCornerShape(50)),
+        decorationBox = { innerTextField ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(30.dp))
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp), contentAlignment = Alignment.CenterStart
+                ) {
+                    if (query.isEmpty()) {
+                        Text("Search for a Pokemon ...", style = TextStyle(color = Color.Black, fontSize = 16.sp, fontFamily = getFontFamily()))
+                    }
+                    innerTextField()
+                }
+            }
+        })
+}
+
+@Composable
+private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, itemSelected: (NameItem) -> Unit) {
+    val list by viewModel.searchResults.collectAsState()
+    LazyColumn(
+        modifier
+            .padding(top = 12.dp),
+        contentPadding = PaddingValues(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        itemsIndexed(list) { index, item ->
+            PokemonListItem(Modifier, item, viewModel, itemSelected = {
+                viewModel.getPokemonData(item)
+                itemSelected(item)
+            })
         }
     }
 }
@@ -118,7 +193,6 @@ private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewM
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
             .background(
                 brush = gradientBrush,
                 shape = RoundedCornerShape(12.dp)

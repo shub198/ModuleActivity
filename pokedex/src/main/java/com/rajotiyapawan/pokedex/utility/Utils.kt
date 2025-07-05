@@ -95,3 +95,19 @@ fun getTypeColor(type: String): Color {
         else -> Color.LightGray
     }
 }
+
+fun convertHeightToFeetInches(heightDm: Int): Pair<Int, Int> {
+    val totalInches = heightDm * 3.93701
+    val feet = (totalInches / 12).toInt()
+    val inches = (totalInches % 12).toInt()
+    return Pair(feet, inches)
+}
+
+fun convertWeightToKg(weightHg: Int): Double {
+    return weightHg * 0.1
+}
+
+fun convertWeightToLbs(weightHg: Int): Double {
+    val kg = convertWeightToKg(weightHg)
+    return kg * 2.20462
+}
