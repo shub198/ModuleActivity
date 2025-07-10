@@ -27,7 +27,7 @@ val fontProvider = GoogleFont.Provider(
     providerPackage = "com.google.android.gms",
     certificates = R.array.com_google_android_gms_fonts_certs
 )
-val montserratFont = GoogleFont("Montserrat")
+val montserratFont = GoogleFont("Lato")
 
 fun getFontFamily(weight: FontWeight = FontWeight.Normal, fontStyle: FontStyle = FontStyle.Normal, font: GoogleFont = montserratFont): FontFamily {
     return FontFamily(Font(googleFont = font, fontProvider, weight = weight, style = fontStyle))

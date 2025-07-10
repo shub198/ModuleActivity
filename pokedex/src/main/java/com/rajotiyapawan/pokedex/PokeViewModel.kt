@@ -1,7 +1,12 @@
 package com.rajotiyapawan.pokedex
 
+import android.graphics.Rect
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rajotiyapawan.network.ApiResponse
@@ -34,6 +39,10 @@ class PokeViewModel : ViewModel() {
 
     private var _pokemonList: MutableStateFlow<UiState<PokemonListData>> = MutableStateFlow(UiState.Idle)
     val pokemonList = _pokemonList.asStateFlow()
+
+    // details for animation
+    var selectedItemBounds by mutableStateOf<Rect?>(null)
+    var selectedItemOffset by mutableStateOf(Offset.Zero)
 
     // Cache detail per Pokémon name
     private val _pokemonDetails = mutableStateMapOf<String, PokemonBasicInfo>()
@@ -68,7 +77,7 @@ class PokeViewModel : ViewModel() {
                     when (val response = pokemonList.value) {
                         is UiState.Success -> {
                             response.data.results?.let { results ->
-                                _searchResults.value = results.filter { it.name?.contains(query) == true }
+                                _searchResults.value = results.filter { it.name?.contains(query) == true || query.isEmpty() }
                             }
                         }
 
@@ -97,6 +106,7 @@ class PokeViewModel : ViewModel() {
             when (val response = NetworkRepository.get<PokemonListData>("${POKE_BaseUrl}pokemon?offset=0&limit=2000")) {
                 is ApiResponse.Success -> {
                     _pokemonList.value = UiState.Success(response.data)
+                    _searchResults.value = response.data.results ?: emptyList()
                 }
 
                 is ApiResponse.Error -> {}
@@ -166,13 +176,13 @@ class PokeViewModel : ViewModel() {
                 item?.name?.let { name ->
                     _abilityDetails[name] = AbilityEffect(
                         effect = detail.effect_entries
-                            .firstOrNull { it.language.name == "en" }
+                            .firstOrNull { it.language.name == "en" && it.effect.isNotBlank()}
                             ?.effect ?: "",
                         short_effect = detail.effect_entries
-                            .firstOrNull { it.language.name == "en" }
+                            .firstOrNull { it.language.name == "en" && it.short_effect.isNotBlank()}
                             ?.short_effect ?: "",
                         flavor_text = detail.flavor_text_entries
-                            .firstOrNull { it.language.name == "en" && it.version_group.name == "x-y" }
+                            .lastOrNull { it.language.name == "en" /*&& it.version_group.name == "x-y"*/ }
                             ?.flavor_text
                             ?.replace("\n", " ") ?: "",
                         language = NameItem("", "")

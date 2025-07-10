@@ -1,5 +1,8 @@
 package com.rajotiyapawan.pokedex.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -43,19 +46,27 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.rajotiyapawan.pokedex.PokeViewModel
 import com.rajotiyapawan.pokedex.R
 import com.rajotiyapawan.pokedex.model.Abilities
@@ -70,6 +81,7 @@ import com.rajotiyapawan.pokedex.utility.convertWeightToLbs
 import com.rajotiyapawan.pokedex.utility.getFontFamily
 import com.rajotiyapawan.pokedex.utility.getTypeColor
 import com.rajotiyapawan.pokedex.utility.noRippleClick
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 enum class PokemonDataTabs {
@@ -95,6 +107,8 @@ fun PokemonDetailScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, data: PokemonData) {
+    val context = LocalContext.current
+    val width = remember { mutableStateOf(0) }
     val id = remember(data) {
         val id = data.id ?: 0
         if (id < 1000) {
@@ -105,6 +119,41 @@ private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
     }
 
     val typeColors = data.types?.map { getTypeColor(it.type?.name ?: "") } ?: listOf()
+
+    var animationDone by remember { mutableStateOf(false) }
+    val startRect = viewModel.selectedItemBounds ?: return
+    val offset = remember { Animatable(Offset(startRect.left.toFloat(), startRect.top.toFloat()), Offset.VectorConverter) }
+    val scaleInX = remember { Animatable(1f) }
+    val scaleInY = remember { Animatable(1f) }
+    val startWidth = startRect.width().toFloat()
+
+    val targetOffsetPx = remember { mutableStateOf(Offset.Zero) }
+    val targetSizePx = remember { mutableStateOf(IntSize.Zero) }
+    val targetOffset = remember { mutableStateOf(Offset.Zero) }
+    var scaleFactorX = 0f
+    var scaleFactorY = 0f
+    LaunchedEffect(targetSizePx.value) {
+        scaleFactorX = targetSizePx.value.width / startWidth
+        scaleFactorY = targetSizePx.value.height / startWidth
+        targetOffset.value = Offset(
+            x = targetSizePx.value.width / 2 - (1.8f) * targetOffsetPx.value.x,
+            y = targetSizePx.value.height / 2 - targetOffsetPx.value.y / 5
+        )
+        if (targetOffsetPx.value != Offset.Zero) {
+            launch {
+                offset.animateTo(targetOffset.value, tween(500))
+            }
+            launch {
+                scaleInX.animateTo(scaleFactorX, tween(500))
+            }
+            launch {
+                scaleInY.animateTo(scaleFactorY, tween(500))
+            }.invokeOnCompletion {
+                animationDone = true
+            }
+        }
+    }
+
     Scaffold { padding ->
         Box(
             modifier
@@ -169,49 +218,109 @@ private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
                 )
             }
             val selectedTab = remember { mutableStateOf(PokemonDataTabs.About) }
-            LazyColumn(Modifier.padding(padding), contentPadding = PaddingValues(horizontal = 16.dp)) {
-                stickyHeader {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.noRippleClick { viewModel.sendUserEvent(PokedexUserEvent.BackBtnClicked) })
-                        Icon(Icons.Default.FavoriteBorder, contentDescription = null)
-                    }
-                }
-                item {
-                    Column {
-                        Text("#$id", fontFamily = getFontFamily(weight = FontWeight.SemiBold), color = Color.White)
-                        Text((data.name ?: "").capitalize(), fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 24.sp, color = Color.White)
-                        AsyncImage(data.sprites?.other?.officialArtwork?.frontDefault, modifier = Modifier.fillMaxWidth(), contentDescription = null, contentScale = ContentScale.FillWidth)
-                    }
-                }
-                stickyHeader {
-                    TabBarRow(selectedTab.value.ordinal) { selectedTab.value = it }
-                }
-                when (selectedTab.value) {
-                    PokemonDataTabs.About -> {
-                        item {
-                            AboutSpecies(viewModel = viewModel, data = data, color = typeColors, types = data.types)
+            Box {
+                LazyColumn(
+                    Modifier
+                        .padding(padding)
+                        .onGloballyPositioned {
+                            width.value = it.size.width
+                        }, contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    stickyHeader {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                modifier = Modifier.noRippleClick { viewModel.sendUserEvent(PokedexUserEvent.BackBtnClicked) })
+                            Icon(Icons.Default.FavoriteBorder, contentDescription = null)
                         }
-                        item {
-                            data.abilities?.let {
-                                AboutAbilities(color = typeColors[0], viewModel = viewModel, modifier = Modifier, abilities = it)
+                    }
+                    item {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                        ) {
+                            Text("#$id", fontFamily = getFontFamily(weight = FontWeight.SemiBold), color = Color.White)
+                            Text(
+                                (data.name ?: "").capitalize(),
+                                fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                                fontSize = 24.sp,
+                                color = Color.White
+                            )
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { layoutCoordinates ->
+                                        targetOffsetPx.value = layoutCoordinates.localToWindow(Offset.Zero)
+                                        targetSizePx.value = layoutCoordinates.size
+                                    }
+                            ) {
+                                val request = ImageRequest.Builder(context)
+                                    .data(data.sprites?.other?.officialArtwork?.frontDefault) // must be the high-res artwork URL
+                                    .crossfade(true)
+                                    .size(coil.size.Size.ORIGINAL) // do not scale down
+                                    .build()
+                                AsyncImage(
+                                    request,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .graphicsLayer {
+                                            translationX = offset.value.x
+                                            translationY = offset.value.y
+                                            scaleX = scaleInX.value
+                                            scaleY = scaleInX.value
+                                        },
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillWidth
+                                )
+                                AsyncImage(
+                                    request,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .alpha(0f),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillWidth
+                                )
                             }
                         }
                     }
-
-                    PokemonDataTabs.Stats -> {
-                        item { Text("Stats") }
+                    stickyHeader {
+                        TabBarRow(selectedTab.value.ordinal) { selectedTab.value = it }
                     }
+                    when (selectedTab.value) {
+                        PokemonDataTabs.About -> {
+                            item {
+                                AboutSpecies(viewModel = viewModel, data = data, color = typeColors, types = data.types)
+                            }
+                            item {
+                                data.abilities?.let {
+                                    AboutAbilities(
+                                        color = typeColors[0],
+                                        viewModel = viewModel,
+                                        modifier = Modifier,
+                                        abilities = it
+                                    )
+                                }
+                            }
+                        }
 
-                    PokemonDataTabs.Moves -> {
-                        item { Text("Moves") }
-                    }
+                        PokemonDataTabs.Stats -> {
+                            item { Text("Stats") }
+                        }
 
-                    PokemonDataTabs.Other -> {
-                        item { Text("Other") }
+                        PokemonDataTabs.Moves -> {
+                            item { Text("Moves") }
+                        }
+
+                        PokemonDataTabs.Other -> {
+                            item { Text("Other") }
+                        }
                     }
                 }
             }
@@ -238,14 +347,28 @@ private fun TabBarRow(selectedTabIndex: Int, onTabSelected: (PokemonDataTabs) ->
             Tab(
                 selected = selectedTabIndex == index,
                 onClick = { onTabSelected(tab) },
-                text = { Text(tab.name, color = Color.Black, fontFamily = getFontFamily(FontWeight.SemiBold), fontSize = 14.sp, lineHeight = 15.sp) }
+                text = {
+                    Text(
+                        tab.name,
+                        color = Color.Black,
+                        fontFamily = getFontFamily(FontWeight.SemiBold),
+                        fontSize = 14.sp,
+                        lineHeight = 15.sp
+                    )
+                }
             )
         }
     }
 }
 
 @Composable
-private fun AboutSpecies(modifier: Modifier = Modifier, data: PokemonData, color: List<Color>, viewModel: PokeViewModel, types: ArrayList<PokeTypes>?) {
+private fun AboutSpecies(
+    modifier: Modifier = Modifier,
+    data: PokemonData,
+    color: List<Color>,
+    viewModel: PokeViewModel,
+    types: ArrayList<PokeTypes>?
+) {
     LaunchedEffect(data.species?.name) { viewModel.fetchPokemonAbout(data.species) }
     val aboutData by viewModel.aboutData.collectAsState()
     Box(
@@ -268,8 +391,19 @@ private fun AboutSpecies(modifier: Modifier = Modifier, data: PokemonData, color
                     .padding(top = 4.dp)
                     .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(aboutData.genus, fontFamily = getFontFamily(weight = FontWeight.SemiBold), color = Color.Black, fontSize = 15.sp)
-                Text(aboutData.flavourText, fontFamily = getFontFamily(), color = Color.Black, fontSize = 12.sp, lineHeight = 13.sp)
+                Text(
+                    aboutData.genus,
+                    fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                    color = Color.Black,
+                    fontSize = 15.sp
+                )
+                Text(
+                    aboutData.flavourText,
+                    fontFamily = getFontFamily(),
+                    color = Color.Black,
+                    fontSize = 12.sp,
+                    lineHeight = 13.sp
+                )
                 Spacer(Modifier.height(12.dp))
 
                 // pokemon types
@@ -281,36 +415,70 @@ private fun AboutSpecies(modifier: Modifier = Modifier, data: PokemonData, color
                                 .background(color = color[index], shape = RoundedCornerShape(50))
                                 .padding(horizontal = 12.dp, vertical = 3.dp)
                         ) {
-                            Text("${type.type?.name?.capitalize()}", color = Color.White, fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 12.sp, lineHeight = 13.sp)
+                            Text(
+                                "${type.type?.name?.capitalize()}",
+                                color = Color.White,
+                                fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                                fontSize = 12.sp,
+                                lineHeight = 13.sp
+                            )
                         }
                     }
                 }
 
                 // body measurements
-                Row(Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     data.height?.let {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             val (feet, inches) = convertHeightToFeetInches(it)
-                            Text("Height", fontSize = 12.sp, lineHeight = 13.sp, fontFamily = getFontFamily(weight = FontWeight.SemiBold))
+                            Text(
+                                "Height",
+                                fontSize = 12.sp,
+                                lineHeight = 13.sp,
+                                fontFamily = getFontFamily(weight = FontWeight.SemiBold)
+                            )
                             Spacer(Modifier.height(4.dp))
                             Text("$feet' $inches\"", fontSize = 12.sp, lineHeight = 13.sp, fontFamily = getFontFamily())
                         }
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Gender Ratio", fontSize = 12.sp, lineHeight = 13.sp, fontFamily = getFontFamily(weight = FontWeight.SemiBold))
+                        Text(
+                            "Gender Ratio",
+                            fontSize = 12.sp,
+                            lineHeight = 13.sp,
+                            fontFamily = getFontFamily(weight = FontWeight.SemiBold)
+                        )
                         Spacer(Modifier.height(4.dp))
-                        Text("${aboutData.malePercentage}% / ${aboutData.femalePercentage}%", fontSize = 12.sp, lineHeight = 13.sp, fontFamily = getFontFamily())
+                        Text(
+                            "${aboutData.malePercentage}% / ${aboutData.femalePercentage}%",
+                            fontSize = 12.sp,
+                            lineHeight = 13.sp,
+                            fontFamily = getFontFamily()
+                        )
                     }
                     data.weight?.let {
                         val kg = convertWeightToKg(it)
                         val lbs = convertWeightToLbs(it)
                         val weight = String.format(Locale.US, "%.1f kg \n(%.1f lbs)", kg, lbs)
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Weight", fontSize = 12.sp, lineHeight = 13.sp, fontFamily = getFontFamily(weight = FontWeight.SemiBold))
+                            Text(
+                                "Weight",
+                                fontSize = 12.sp,
+                                lineHeight = 13.sp,
+                                fontFamily = getFontFamily(weight = FontWeight.SemiBold)
+                            )
                             Spacer(Modifier.height(4.dp))
-                            Text(weight, textAlign = TextAlign.Center, fontSize = 12.sp, lineHeight = 13.sp, fontFamily = getFontFamily())
+                            Text(
+                                weight,
+                                textAlign = TextAlign.Center,
+                                fontSize = 12.sp,
+                                lineHeight = 13.sp,
+                                fontFamily = getFontFamily()
+                            )
                         }
                     }
                 }
@@ -322,14 +490,25 @@ private fun AboutSpecies(modifier: Modifier = Modifier, data: PokemonData, color
                 .background(color = Color.White, shape = RoundedCornerShape(50))
                 .padding(horizontal = 12.dp)
         ) {
-            Text("Species", color = color[0], fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 14.sp, lineHeight = 16.sp)
+            Text(
+                "Species",
+                color = color[0],
+                fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                fontSize = 14.sp,
+                lineHeight = 16.sp
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilities: ArrayList<Abilities>, viewModel: PokeViewModel) {
+private fun AboutAbilities(
+    modifier: Modifier = Modifier,
+    color: Color,
+    abilities: ArrayList<Abilities>,
+    viewModel: PokeViewModel
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
     var showAbilityDescription by remember { mutableStateOf("") }
@@ -353,7 +532,13 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
                     .padding(top = 4.dp)
                     .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(R.string.ability_intro), color = Color.Black, fontFamily = getFontFamily(), fontSize = 12.sp, lineHeight = 13.sp)
+                Text(
+                    stringResource(R.string.ability_intro),
+                    color = Color.Black,
+                    fontFamily = getFontFamily(),
+                    fontSize = 12.sp,
+                    lineHeight = 13.sp
+                )
                 Spacer(Modifier.height(18.dp))
                 abilities.forEach { ability ->
                     val detail = viewModel.abilityDetails[ability.ability?.name ?: ""]
@@ -368,15 +553,28 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
                         horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text((ability.ability?.name ?: "").capitalize(), color = color, fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 12.sp, lineHeight = 13.sp)
+                            Text(
+                                (ability.ability?.name ?: "").capitalize(),
+                                color = color,
+                                fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                                fontSize = 12.sp,
+                                lineHeight = 13.sp
+                            )
                             if (ability.isHidden == true) {
-                                Text(" - Hidden", color = color.copy(alpha = 0.5f), fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 12.sp, lineHeight = 13.sp)
+                                Text(
+                                    " - Hidden",
+                                    color = color.copy(alpha = 0.5f),
+                                    fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                                    fontSize = 12.sp,
+                                    lineHeight = 13.sp
+                                )
 
                             }
                         }
-                        Icon(Icons.Outlined.Info, contentDescription = null, tint = color, modifier = Modifier
-                            .size(16.dp)
-                            .noRippleClick { showAbilityDescription = ability.ability?.name ?: "" })
+                        Icon(
+                            Icons.Outlined.Info, contentDescription = null, tint = color, modifier = Modifier
+                                .size(16.dp)
+                                .noRippleClick { showAbilityDescription = ability.ability?.name ?: "" })
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(detail?.flavor_text ?: "", modifier = Modifier.fillMaxWidth(), fontSize = 12.sp, lineHeight = 13.sp)
@@ -390,7 +588,13 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
                 .background(color = Color.White, shape = RoundedCornerShape(50))
                 .padding(horizontal = 12.dp)
         ) {
-            Text("Abilities", color = color, fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 14.sp, lineHeight = 16.sp)
+            Text(
+                "Abilities",
+                color = color,
+                fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                fontSize = 14.sp,
+                lineHeight = 16.sp
+            )
         }
     }
     if (showAbilityDescription.isNotEmpty()) {
@@ -401,7 +605,13 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
         ) {
             val detail = viewModel.abilityDetails[showAbilityDescription]
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("ABILITY", color = Color(0xff909090), fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 10.sp, lineHeight = 11.sp)
+                Text(
+                    "ABILITY",
+                    color = Color(0xff909090),
+                    fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                    fontSize = 10.sp,
+                    lineHeight = 11.sp
+                )
                 Text(showAbilityDescription.capitalize(), fontFamily = getFontFamily(weight = FontWeight.SemiBold))
                 Box(
                     modifier
@@ -417,9 +627,11 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
                         shape = RoundedCornerShape(12.dp),
                         shadowElevation = 4.dp
                     ) {
-                        Column(Modifier
-                            .fillMaxWidth()
-                            .padding(top = 20.dp, start = 16.dp, end = 16.dp, bottom = 20.dp)) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 20.dp, start = 16.dp, end = 16.dp, bottom = 20.dp)
+                        ) {
                             Text("Description", fontFamily = getFontFamily(weight = FontWeight.SemiBold))
                             Text(detail?.flavor_text ?: "", fontSize = 12.sp, lineHeight = 13.sp)
                             Spacer(Modifier.height(16.dp))
@@ -436,7 +648,13 @@ private fun AboutAbilities(modifier: Modifier = Modifier, color: Color, abilitie
                             .background(color = Color.White, shape = RoundedCornerShape(50))
                             .padding(horizontal = 12.dp)
                     ) {
-                        Text("Details", color = color, fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 14.sp, lineHeight = 16.sp)
+                        Text(
+                            "Details",
+                            color = color,
+                            fontFamily = getFontFamily(weight = FontWeight.SemiBold),
+                            fontSize = 14.sp,
+                            lineHeight = 16.sp
+                        )
                     }
                 }
             }
