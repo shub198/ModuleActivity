@@ -17,7 +17,7 @@ data class PokemonData(
     @SerializedName("name") var name: String? = null,
     @SerializedName("order") var order: Int? = null,
     @SerializedName("past_abilities") var pastAbilities: ArrayList<PastAbilities>? = null,
-    @SerializedName("past_types") var pastTypes: ArrayList<String>? = null,
+    @SerializedName("past_types") var pastTypes: ArrayList<PastTypes>? = null,
     @SerializedName("species") var species: NameItem? = null,
     @SerializedName("sprites") var sprites: Sprites? = null,
     @SerializedName("stats") var stats: ArrayList<Stats>? = null,
@@ -44,7 +44,7 @@ data class GameIndices(
 data class VersionGroupDetails(
     @SerializedName("level_learned_at") var levelLearnedAt: Int? = null,
     @SerializedName("move_learn_method") var moveLearnMethod: NameItem? = null,
-    @SerializedName("order") var order: String? = null,
+    @SerializedName("order") var order: Int? = null,
     @SerializedName("version_group") var versionGroup: NameItem? = null
 )
 
@@ -108,4 +108,9 @@ data class OfficialArtwork(
 
 data class HeldItem(
     val item: NameItem
+)
+
+data class PastTypes(
+    val generation: NameItem?,
+    val types: List<PokeTypes>?
 )

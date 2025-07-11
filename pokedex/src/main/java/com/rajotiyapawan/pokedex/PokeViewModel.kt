@@ -182,7 +182,7 @@ class PokeViewModel : ViewModel() {
                             .firstOrNull { it.language.name == "en" && it.short_effect.isNotBlank()}
                             ?.short_effect ?: "",
                         flavor_text = detail.flavor_text_entries
-                            .lastOrNull { it.language.name == "en" /*&& it.version_group.name == "x-y"*/ }
+                            .lastOrNull { it.language.name == "en" }
                             ?.flavor_text
                             ?.replace("\n", " ") ?: "",
                         language = NameItem("", "")
