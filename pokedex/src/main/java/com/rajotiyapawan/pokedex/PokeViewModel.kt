@@ -152,8 +152,12 @@ class PokeViewModel : ViewModel() {
                     genus = detail.genera
                         .firstOrNull { it.language.name == "en" }
                         ?.genus ?: "",
+                    growthRate = detail.growth_rate.name ?: "",
                     femalePercentage = femalePercentage,
-                    malePercentage = 100 - femalePercentage
+                    malePercentage = 100 - femalePercentage,
+                    baseFriendship = detail.base_happiness,
+                    hatchCounter = detail.hatch_counter,
+                    eggGroups = detail.egg_groups
                 )
             } else if (response is ApiResponse.Error) {
                 Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
