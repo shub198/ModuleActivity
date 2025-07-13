@@ -40,11 +40,12 @@ data class PokemonAbout(
     val malePercentage: Double,
     val baseFriendship: Int,
     val hatchCounter: Int,
-    val eggGroups: List<NameItem>
+    val eggGroups: List<NameItem>,
+    val evolutionChain: NameItem
 ) {
     companion object {
         fun init(): PokemonAbout {
-            return PokemonAbout("", "", "", 0.0, 0.0, 0, 0, listOf())
+            return PokemonAbout("", "", "", 0.0, 0.0, 0, 0, listOf(), NameItem("", ""))
         }
     }
 }

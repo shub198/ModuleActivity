@@ -201,7 +201,7 @@ private fun DetailMainUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
                         .padding(padding)
                         .onGloballyPositioned {
                             width.value = it.size.width
-                        }, contentPadding = PaddingValues(horizontal = 16.dp)
+                        }, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)
                 ) {
                     stickyHeader {
                         Row(

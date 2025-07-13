@@ -20,7 +20,10 @@ import com.rajotiyapawan.pokedex.model.PokemonAbout
 import com.rajotiyapawan.pokedex.model.PokemonAboutDto
 import com.rajotiyapawan.pokedex.model.PokemonBasicInfo
 import com.rajotiyapawan.pokedex.model.PokemonData
+import com.rajotiyapawan.pokedex.model.PokemonEvolution
+import com.rajotiyapawan.pokedex.model.PokemonEvolutionDto
 import com.rajotiyapawan.pokedex.model.PokemonListData
+import com.rajotiyapawan.pokedex.model.toChain
 import com.rajotiyapawan.pokedex.utility.UiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -157,7 +160,8 @@ class PokeViewModel : ViewModel() {
                     malePercentage = 100 - femalePercentage,
                     baseFriendship = detail.base_happiness,
                     hatchCounter = detail.hatch_counter,
-                    eggGroups = detail.egg_groups
+                    eggGroups = detail.egg_groups,
+                    evolutionChain = detail.evolution_chain
                 )
             } else if (response is ApiResponse.Error) {
                 Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
@@ -192,6 +196,23 @@ class PokeViewModel : ViewModel() {
                         language = NameItem("", "")
                     )
                 }
+            } else if (response is ApiResponse.Error) {
+                Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
+            }
+        }
+    }
+
+    private val _evolutionChain = MutableStateFlow(PokemonEvolution(null))
+    val evolutionChain = _evolutionChain.asStateFlow()
+
+    fun getEvolutionChain(item: NameItem?) {
+        viewModelScope.launch {
+            val response = NetworkRepository.get<PokemonEvolutionDto>(item?.url ?: "")
+            if (response is ApiResponse.Success) {
+                val detail = response.data
+                _evolutionChain.value = PokemonEvolution(
+                    chain = detail.chain?.toChain()
+                )
             } else if (response is ApiResponse.Error) {
                 Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
             }

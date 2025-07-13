@@ -29,4 +29,7 @@ fun LazyListScope.aboutTabUI(modifier: Modifier = Modifier, viewModel: PokeViewM
     item {
         AboutBreeding(modifier.padding(top = 16.dp), color = typeColors[0], viewModel)
     }
+    item {
+        AboutEvolution(modifier.padding(top = 16.dp), color = typeColors[0], viewModel)
+    }
 }
