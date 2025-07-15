@@ -43,23 +43,29 @@ fun AboutEvolution(modifier: Modifier = Modifier, color: Color, viewModel: PokeV
                     )
                     Text(firstPokemon.capitalize())
                 }
-                val secondPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.species?.name ?: ""
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val detail = viewModel.pokemonDetails[secondPokemon]
-                    AsyncImage(
-                        model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Text(secondPokemon.capitalize())
+                val secondPokemon = evolutionChain.chain?.evolvesTo?.takeIf { it.isNotEmpty() }?.get(0)?.species?.name ?: ""
+                if (secondPokemon.isNotEmpty()) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val detail = viewModel.pokemonDetails[secondPokemon]
+                        AsyncImage(
+                            model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Text(secondPokemon.capitalize())
+                    }
                 }
-                val thirdPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.evolvesTo?.get(0)?.species?.name ?: ""
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val detail = viewModel.pokemonDetails[thirdPokemon]
-                    AsyncImage(
-                        model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Text(thirdPokemon.capitalize())
+                val thirdPokemon =
+                    evolutionChain.chain?.evolvesTo?.takeIf { it.isNotEmpty() }?.get(0)?.evolvesTo?.takeIf { it.isNotEmpty() }
+                        ?.get(0)?.species?.name ?: ""
+                if (thirdPokemon.isNotEmpty()) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val detail = viewModel.pokemonDetails[thirdPokemon]
+                        AsyncImage(
+                            model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Text(thirdPokemon.capitalize())
+                    }
                 }
             }
         }
