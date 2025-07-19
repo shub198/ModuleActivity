@@ -1,11 +1,6 @@
 package com.rajotiyapawan.pokedex.ui
 
-import android.graphics.Rect
 import android.util.Log
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,30 +29,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import coil.size.Size
 import com.rajotiyapawan.pokedex.PokeViewModel
 import com.rajotiyapawan.pokedex.model.NameItem
 import com.rajotiyapawan.pokedex.model.PokedexUserEvent
@@ -67,7 +56,6 @@ import com.rajotiyapawan.pokedex.utility.capitalize
 import com.rajotiyapawan.pokedex.utility.getFontFamily
 import com.rajotiyapawan.pokedex.utility.getTypeColor
 import com.rajotiyapawan.pokedex.utility.noRippleClick
-import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
@@ -181,8 +169,7 @@ private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewMode
 private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewModel: PokeViewModel, itemSelected: () -> Unit) {
     val detail = viewModel.pokemonDetails[item.name]
     val width = LocalConfiguration.current.screenWidthDp
-    var itemOffset by remember { mutableStateOf(Offset.Zero) }
-    var itemSize by remember { mutableStateOf(IntSize.Zero) }
+    val context = LocalContext.current
 
     LaunchedEffect(item.name) {
         if (detail == null) viewModel.fetchBasicDetail(item)
@@ -225,26 +212,21 @@ private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewM
                 shape = RoundedCornerShape(12.dp)
             )
             .noRippleClick {
-                viewModel.selectedItemBounds = Rect(
-                    /* left = */ itemOffset.x.toInt(),
-                    /* top = */ itemOffset.y.toInt(),
-                    /* right = */ (itemOffset.x + itemSize.width).toInt(),
-                    /* bottom = */ (itemOffset.y + itemSize.height).toInt()
-                )
                 itemSelected()
             }
             .padding(vertical = 12.dp, horizontal = 8.dp)
     ) {
         if (detail != null) {
             Box(Modifier.size(56.dp)) {
+                val request = ImageRequest.Builder(context)
+                    .data(detail.imageUrl) // must be the high-res artwork URL
+                    .crossfade(true)
+                    .size(Size.ORIGINAL) // do not scale down
+                    .build()
                 AsyncImage(
-                    model = detail.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
+                    model = request, contentDescription = null, contentScale = ContentScale.FillWidth,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .onGloballyPositioned {
-                            itemOffset = it.localToWindow(Offset.Zero)
-                            itemSize = it.size
-                        }
                 )
             }
         } else {
@@ -267,55 +249,5 @@ private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewM
             Icon(Icons.Default.FavoriteBorder, contentDescription = null)
             Text("#$formatted", fontFamily = getFontFamily(weight = FontWeight.SemiBold), fontSize = 20.sp)
         }
-    }
-}
-
-@Composable
-fun SharedImageTransition(
-    imageUrl: String,
-    startBounds: Rect,
-    endSize: DpSize,
-    endOffset: Offset,
-    durationMillis: Int = 500
-) {
-    val density = LocalDensity.current
-    val startOffset = remember(startBounds) {
-        Offset(startBounds.left.toFloat(), startBounds.top.toFloat())
-    }
-
-    val startWidth = startBounds.width().toFloat()
-    val targetWidth = with(density) { endSize.width.toPx() }
-    val scaleFactor = targetWidth / startWidth
-
-    val animatedOffset = remember { Animatable(startOffset, Offset.VectorConverter) }
-    val animatedScale = remember { Animatable(1f) }
-
-    LaunchedEffect(Unit) {
-        launch {
-            animatedOffset.animateTo(
-                targetValue = endOffset,
-                animationSpec = tween(durationMillis)
-            )
-        }
-
-        launch {
-            animatedScale.animateTo(scaleFactor, animationSpec = tween(durationMillis))
-        }
-    }
-
-    Box(
-        Modifier
-            .graphicsLayer {
-                translationX = animatedOffset.value.x
-                translationY = animatedOffset.value.y
-                scaleX = animatedScale.value
-                scaleY = animatedScale.value
-            }
-    ) {
-        Image(
-            painter = rememberAsyncImagePainter(imageUrl),
-            contentDescription = null,
-            modifier = Modifier.width(endSize.width), contentScale = ContentScale.FillWidth
-        )
     }
 }

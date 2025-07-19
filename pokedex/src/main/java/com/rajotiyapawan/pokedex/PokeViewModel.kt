@@ -250,4 +250,9 @@ class PokeViewModel : ViewModel() {
             }
         }
     }
+
+
+    fun toggleFavourites(item: NameItem) {
+
+    }
 }

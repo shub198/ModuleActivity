@@ -7,6 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,17 +64,44 @@ class PokedexMainActivity : ComponentActivity() {
         PrepareNavGraph(modifier, navController, startDestination)
     }
 
+    @OptIn(ExperimentalAnimationApi::class)
     @Composable
     private fun PrepareNavGraph(modifier: Modifier = Modifier, navController: NavHostController, startDestination: String) {
         NavHost(
             navController = navController, startDestination = startDestination,
             modifier = modifier
         ) {
-            composable("main") {
+            composable(
+                "main",
+                enterTransition = {
+                    slideInHorizontally(initialOffsetX = { 1000 }) + fadeIn()
+                },
+                exitTransition = {
+                    slideOutHorizontally(targetOffsetX = { -1000 }) + fadeOut()
+                },
+                popEnterTransition = {
+                    slideInHorizontally(initialOffsetX = { -1000 }) + fadeIn()
+                },
+                popExitTransition = {
+                    slideOutHorizontally(targetOffsetX = { 1000 }) + fadeOut()
+                }) {
                 PokedexMainScreen(Modifier.fillMaxSize(), viewModel)
             }
 
-            composable("detail/{pokemon}") { backStackEntry ->
+            composable(
+                "detail/{pokemon}",
+                enterTransition = {
+                    slideInHorizontally(initialOffsetX = { 1000 }) + fadeIn()
+                },
+                exitTransition = {
+                    slideOutHorizontally(targetOffsetX = { -1000 }) + fadeOut()
+                },
+                popEnterTransition = {
+                    slideInHorizontally(initialOffsetX = { -1000 }) + fadeIn()
+                },
+                popExitTransition = {
+                    slideOutHorizontally(targetOffsetX = { 1000 }) + fadeOut()
+                }) { backStackEntry ->
                 val item = backStackEntry.arguments?.getString("pokemon") ?: return@composable
                 PokemonDetailScreen(Modifier.fillMaxSize(), NameItem(item, ""), viewModel)
             }
