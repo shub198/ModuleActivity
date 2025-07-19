@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.rajotiyapawan.pokedex.PokeViewModel
+import com.rajotiyapawan.pokedex.model.NameItem
 import com.rajotiyapawan.pokedex.model.PokedexUserEvent
 import com.rajotiyapawan.pokedex.model.PokemonData
 import com.rajotiyapawan.pokedex.ui.detail_screen.about.aboutTabUI
@@ -69,7 +70,11 @@ enum class PokemonDataTabs {
 }
 
 @Composable
-fun PokemonDetailScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel) {
+fun PokemonDetailScreen(modifier: Modifier = Modifier, nameItem: NameItem, viewModel: PokeViewModel) {
+    // Trigger fetch only when name changes
+    LaunchedEffect(nameItem.name) {
+        viewModel.getPokemonData(nameItem)
+    }
     val pokeData = viewModel.pokemonData.collectAsState()
     when (val response = pokeData.value) {
         is UiState.Error -> {}

@@ -1,6 +1,7 @@
 package com.rajotiyapawan.pokedex.ui
 
 import android.graphics.Rect
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
@@ -60,6 +61,7 @@ import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.rajotiyapawan.pokedex.PokeViewModel
 import com.rajotiyapawan.pokedex.model.NameItem
+import com.rajotiyapawan.pokedex.model.PokedexUserEvent
 import com.rajotiyapawan.pokedex.utility.UiState
 import com.rajotiyapawan.pokedex.utility.capitalize
 import com.rajotiyapawan.pokedex.utility.getFontFamily
@@ -69,7 +71,7 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
-fun PokedexMainScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel, itemSelected: (NameItem) -> Unit) {
+fun PokedexMainScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel) {
     val pokeData = viewModel.pokemonList.collectAsState()
     when (val response = pokeData.value) {
         is UiState.Error -> {}
@@ -81,13 +83,13 @@ fun PokedexMainScreen(modifier: Modifier = Modifier, viewModel: PokeViewModel, i
         }
 
         is UiState.Success -> {
-            response.data.results?.let { MainScreenUI(modifier, viewModel, itemSelected) }
+            response.data.results?.let { MainScreenUI(modifier, viewModel) }
         }
     }
 }
 
 @Composable
-private fun MainScreenUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, itemSelected: (NameItem) -> Unit) {
+private fun MainScreenUI(modifier: Modifier = Modifier, viewModel: PokeViewModel) {
     LaunchedEffect(Unit) { viewModel.onQueryChanged("") }
     val focusManager = LocalFocusManager.current
     Scaffold(modifier) { padding ->
@@ -117,7 +119,7 @@ private fun MainScreenUI(modifier: Modifier = Modifier, viewModel: PokeViewModel
             PokemonListUI(
                 Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp), viewModel, itemSelected
+                    .padding(top = 12.dp), viewModel
             )
         }
     }
@@ -158,7 +160,7 @@ private fun SearchBar(modifier: Modifier = Modifier, viewModel: PokeViewModel) {
 }
 
 @Composable
-private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewModel, itemSelected: (NameItem) -> Unit) {
+private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewModel) {
     val list by viewModel.searchResults.collectAsState()
 
     LazyColumn(
@@ -169,8 +171,7 @@ private fun PokemonListUI(modifier: Modifier = Modifier, viewModel: PokeViewMode
     ) {
         itemsIndexed(list) { index, item ->
             PokemonListItem(Modifier.fillMaxWidth(), item, viewModel, itemSelected = {
-                viewModel.getPokemonData(item)
-                itemSelected(item)
+                viewModel.sendUserEvent(PokedexUserEvent.OpenDetail(item))
             })
         }
     }
@@ -183,9 +184,10 @@ private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewM
     var itemOffset by remember { mutableStateOf(Offset.Zero) }
     var itemSize by remember { mutableStateOf(IntSize.Zero) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(item.name) {
         if (detail == null) viewModel.fetchBasicDetail(item)
     }
+    Log.d("PokemonUI", "Composing ${item.name} | detail loaded = ${detail != null}")
 
     val typeColors = detail?.types?.map { getTypeColor(it) } ?: listOf()
     val gradientBrush = remember(detail?.types) {
@@ -237,7 +239,8 @@ private fun PokemonListItem(modifier: Modifier = Modifier, item: NameItem, viewM
             Box(Modifier.size(56.dp)) {
                 AsyncImage(
                     model = detail.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .onGloballyPositioned {
                             itemOffset = it.localToWindow(Offset.Zero)
                             itemSize = it.size

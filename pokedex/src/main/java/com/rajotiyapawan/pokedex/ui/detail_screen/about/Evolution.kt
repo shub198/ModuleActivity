@@ -1,5 +1,6 @@
 package com.rajotiyapawan.pokedex.ui.detail_screen.about
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,14 +19,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.rajotiyapawan.pokedex.PokeViewModel
+import com.rajotiyapawan.pokedex.model.NameItem
+import com.rajotiyapawan.pokedex.model.PokedexUserEvent
 import com.rajotiyapawan.pokedex.ui.detail_screen.DetailCardWithTitle
 import com.rajotiyapawan.pokedex.utility.capitalize
+import com.rajotiyapawan.pokedex.utility.noRippleClick
 
 @Composable
 fun AboutEvolution(modifier: Modifier = Modifier, color: Color, viewModel: PokeViewModel) {
     val aboutData by viewModel.aboutData.collectAsState()
-    LaunchedEffect(aboutData.evolutionChain.name) { viewModel.getEvolutionChain(aboutData.evolutionChain) }
+    LaunchedEffect(Unit) { viewModel.getEvolutionChain(aboutData.evolutionChain) }
     val evolutionChain by viewModel.evolutionChain.collectAsState()
+    val firstPokemon = evolutionChain.chain?.species
+
     DetailCardWithTitle(modifier, "Evolution", color) {
         Column(
             Modifier
@@ -34,34 +40,40 @@ fun AboutEvolution(modifier: Modifier = Modifier, color: Color, viewModel: PokeV
                 .padding(12.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                val firstPokemon = evolutionChain.chain?.species?.name ?: ""
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val detail = viewModel.pokemonDetails[firstPokemon]
-                    AsyncImage(
-                        model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Text(firstPokemon.capitalize())
-                }
-                val secondPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.species?.name ?: ""
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val detail = viewModel.pokemonDetails[secondPokemon]
-                    AsyncImage(
-                        model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Text(secondPokemon.capitalize())
-                }
-                val thirdPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.evolvesTo?.get(0)?.species?.name ?: ""
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val detail = viewModel.pokemonDetails[thirdPokemon]
-                    AsyncImage(
-                        model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Text(thirdPokemon.capitalize())
+                EvolvePokemon(modifier = Modifier.weight(1f), pokemon = firstPokemon, viewModel = viewModel)
+                if (evolutionChain.chain?.evolvesTo?.isNotEmpty() == true) {
+                    val secondPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.species
+                    EvolvePokemon(modifier = Modifier.weight(1f), pokemon = secondPokemon, viewModel = viewModel)
+                    if (evolutionChain.chain?.evolvesTo?.get(0)?.evolvesTo?.isNotEmpty() == true) {
+                        val thirdPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.evolvesTo?.get(0)?.species
+                        EvolvePokemon(modifier = Modifier.weight(1f), pokemon = thirdPokemon, viewModel = viewModel)
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EvolvePokemon(modifier: Modifier = Modifier, pokemon: NameItem?, viewModel: PokeViewModel) {
+    pokemon?.let {
+        val detail = viewModel.pokemonDetails[it.name]
+        Log.d("Evolution", "Pokemon name = ${it.name} and url = ${it.url}")
+        LaunchedEffect(pokemon.name) {
+            if (detail == null) {
+                viewModel.fetchBasicDetailByName(it.name)
+            }
+        }
+        Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+            AsyncImage(
+                model = detail?.imageUrl, contentDescription = null, contentScale = ContentScale.FillWidth,
+                modifier = Modifier
+                    .size(56.dp)
+                    .noRippleClick {
+                        viewModel.sendUserEvent(PokedexUserEvent.OpenDetail(pokemon))
+                    }
+            )
+            Text((it.name ?: "").capitalize())
         }
     }
 }

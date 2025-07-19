@@ -15,6 +15,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.rajotiyapawan.pokedex.model.NameItem
 import com.rajotiyapawan.pokedex.model.PokedexUserEvent
 import com.rajotiyapawan.pokedex.ui.PokedexMainScreen
 import com.rajotiyapawan.pokedex.ui.PokemonDetailScreen
@@ -65,13 +66,12 @@ class PokedexMainActivity : ComponentActivity() {
             modifier = modifier
         ) {
             composable("main") {
-                PokedexMainScreen(Modifier.fillMaxSize(), viewModel) {
-                    navController.navigate("detail")
-                }
+                PokedexMainScreen(Modifier.fillMaxSize(), viewModel)
             }
 
-            composable("detail") {
-                PokemonDetailScreen(Modifier.fillMaxSize(), viewModel)
+            composable("detail/{pokemon}") { backStackEntry ->
+                val item = backStackEntry.arguments?.getString("pokemon") ?: return@composable
+                PokemonDetailScreen(Modifier.fillMaxSize(), NameItem(item, ""), viewModel)
             }
 
         }
@@ -80,6 +80,7 @@ class PokedexMainActivity : ComponentActivity() {
     private fun handleUserEvents(navController: NavHostController, event: PokedexUserEvent) {
         when (event) {
             PokedexUserEvent.BackBtnClicked -> navController.popBackStack()
+            is PokedexUserEvent.OpenDetail -> navController.navigate("detail/${event.nameItem.name}")
         }
     }
 }

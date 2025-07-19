@@ -49,7 +49,9 @@ class PokeViewModel : ViewModel() {
 
     // Cache detail per Pokémon name
     private val _pokemonDetails = mutableStateMapOf<String, PokemonBasicInfo>()
-    val pokemonDetails: Map<String, PokemonBasicInfo> get() = _pokemonDetails
+    val pokemonDetails = _pokemonDetails
+    private val _pokemonCache = mutableMapOf<String, PokemonData>()
+    val pokemonCache = _pokemonCache
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
@@ -93,11 +95,20 @@ class PokeViewModel : ViewModel() {
     private var _pokemonData = MutableStateFlow<UiState<PokemonData>>(UiState.Idle)
     val pokemonData = _pokemonData.asStateFlow()
     fun getPokemonData(item: NameItem) {
+        val name = item.name?.lowercase()
+
+        // Use cached data if available
+        val cached = _pokemonCache[name]
+        if (cached != null) {
+            _pokemonData.value = UiState.Success(cached)
+            return
+        }
         viewModelScope.launch {
-            when (val response = NetworkRepository.get<PokemonData>(item.url ?: "")) {
+            when (val response = NetworkRepository.get<PokemonData>("https://pokeapi.co/api/v2/pokemon/${name}")) {
                 is ApiResponse.Error -> {}
                 is ApiResponse.Success<PokemonData> -> {
                     _pokemonData.value = UiState.Success(response.data)
+                    _pokemonCache[name ?: ""] = response.data
                 }
             }
         }
@@ -134,6 +145,27 @@ class PokeViewModel : ViewModel() {
                 }
             } else if (response is ApiResponse.Error) {
                 Log.e("FetchError", "Failed for ${item?.name}: ${response.message}")
+            }
+        }
+    }
+    fun fetchBasicDetailByName(name: String?) {
+        if (name == null) return
+        if (_pokemonDetails.containsKey(name)) return // already fetched
+
+        viewModelScope.launch {
+            delay(100L) // Give some time between requests
+            val response = NetworkRepository.get<PokemonData>("https://pokeapi.co/api/v2/pokemon/$name")
+            if (response is ApiResponse.Success) {
+                val detail = response.data
+                name?.let { name ->
+                    _pokemonDetails[name] = PokemonBasicInfo(
+                        id = detail.id ?: 0,
+                        imageUrl = detail.sprites?.other?.officialArtwork?.frontDefault ?: "",
+                        types = detail.types?.map { it.type?.name ?: "" } ?: listOf()
+                    )
+                }
+            } else if (response is ApiResponse.Error) {
+                Log.e("FetchError", "Failed for ${name}: ${response.message}")
             }
         }
     }
