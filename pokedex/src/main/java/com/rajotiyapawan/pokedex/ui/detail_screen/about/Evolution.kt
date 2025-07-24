@@ -16,13 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.rajotiyapawan.pokedex.PokeViewModel
 import com.rajotiyapawan.pokedex.model.NameItem
 import com.rajotiyapawan.pokedex.model.PokedexUserEvent
 import com.rajotiyapawan.pokedex.ui.detail_screen.DetailCardWithTitle
 import com.rajotiyapawan.pokedex.utility.capitalize
+import com.rajotiyapawan.pokedex.utility.getFontFamily
 import com.rajotiyapawan.pokedex.utility.noRippleClick
 
 @Composable
@@ -32,7 +35,7 @@ fun AboutEvolution(modifier: Modifier = Modifier, color: Color, viewModel: PokeV
     val evolutionChain by viewModel.evolutionChain.collectAsState()
     val firstPokemon = evolutionChain.chain?.species
 
-    DetailCardWithTitle(modifier, "Evolution", color) {
+    DetailCardWithTitle(modifier, "Evolution chain", color) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -43,10 +46,32 @@ fun AboutEvolution(modifier: Modifier = Modifier, color: Color, viewModel: PokeV
                 EvolvePokemon(modifier = Modifier.weight(1f), pokemon = firstPokemon, viewModel = viewModel)
                 if (evolutionChain.chain?.evolvesTo?.isNotEmpty() == true) {
                     val secondPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.species
-                    EvolvePokemon(modifier = Modifier.weight(1f), pokemon = secondPokemon, viewModel = viewModel)
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        EvolvePokemon(modifier = Modifier, pokemon = secondPokemon, viewModel = viewModel)
+                        Text(
+                            "Level ${
+                                evolutionChain.chain?.evolvesTo?.get(0)?.evolutionDetails?.takeIf { it.isNotEmpty() }
+                                    ?.get(0)?.min_level
+                            }",
+                            fontSize = 12.sp,
+                            lineHeight = 13.sp,
+                            fontFamily = getFontFamily()
+                        )
+                    }
                     if (evolutionChain.chain?.evolvesTo?.get(0)?.evolvesTo?.isNotEmpty() == true) {
                         val thirdPokemon = evolutionChain.chain?.evolvesTo?.get(0)?.evolvesTo?.get(0)?.species
-                        EvolvePokemon(modifier = Modifier.weight(1f), pokemon = thirdPokemon, viewModel = viewModel)
+                        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            EvolvePokemon(modifier = Modifier, pokemon = thirdPokemon, viewModel = viewModel)
+                            Text(
+                                "Level ${
+                                    evolutionChain.chain?.evolvesTo?.get(0)?.evolvesTo?.get(0)?.evolutionDetails?.takeIf { it.isNotEmpty() }
+                                        ?.get(0)?.min_level
+                                }",
+                                fontSize = 12.sp,
+                                lineHeight = 13.sp,
+                                fontFamily = getFontFamily()
+                            )
+                        }
                     }
                 }
             }
@@ -73,7 +98,12 @@ private fun EvolvePokemon(modifier: Modifier = Modifier, pokemon: NameItem?, vie
                         viewModel.sendUserEvent(PokedexUserEvent.OpenDetail(pokemon))
                     }
             )
-            Text((it.name ?: "").capitalize())
+            Text(
+                (it.name ?: "").capitalize(),
+                fontSize = 12.sp,
+                lineHeight = 13.sp,
+                fontFamily = getFontFamily(weight = FontWeight.SemiBold)
+            )
         }
     }
 }

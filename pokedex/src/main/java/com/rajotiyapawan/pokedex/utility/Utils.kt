@@ -1,5 +1,7 @@
 package com.rajotiyapawan.pokedex.utility
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
@@ -11,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -111,3 +114,39 @@ fun convertWeightToLbs(weightHg: Int): Double {
     val kg = convertWeightToKg(weightHg)
     return kg * 2.20462
 }
+
+@DrawableRes
+fun getTypeIconRes(type: String): Int {
+    return when (type.lowercase()) {
+        "fire" -> R.drawable.fire
+        "water" -> R.drawable.water
+        "grass" -> R.drawable.grass
+        "electric" -> R.drawable.electric
+        "psychic" -> R.drawable.psychic
+        "ice" -> R.drawable.ice
+        "dragon" -> R.drawable.dragon
+        "dark" -> R.drawable.dark
+        "fairy" -> R.drawable.fairy
+        "normal" -> R.drawable.normal
+        "fighting" -> R.drawable.fighting
+        "flying" -> R.drawable.flying
+        "poison" -> R.drawable.poison
+        "ground" -> R.drawable.ground
+        "rock" -> R.drawable.rock
+        "bug" -> R.drawable.bug
+        "ghost" -> R.drawable.ghost
+        "steel" -> R.drawable.steel
+        else -> R.drawable.normal // fallback icon
+    }
+}
+
+@Composable
+fun TypeIcon(type: String, modifier: Modifier = Modifier) {
+    val iconRes = getTypeIconRes(type)
+    Image(
+        painter = painterResource(id = iconRes),
+        contentDescription = "$type type icon",
+        modifier = modifier
+    )
+}
+

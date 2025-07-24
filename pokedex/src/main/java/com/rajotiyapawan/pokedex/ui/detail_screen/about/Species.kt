@@ -1,15 +1,12 @@
 package com.rajotiyapawan.pokedex.ui.detail_screen.about
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +23,7 @@ import com.rajotiyapawan.pokedex.PokeViewModel
 import com.rajotiyapawan.pokedex.model.PokeTypes
 import com.rajotiyapawan.pokedex.model.PokemonData
 import com.rajotiyapawan.pokedex.ui.detail_screen.DetailCardWithTitle
-import com.rajotiyapawan.pokedex.utility.capitalize
+import com.rajotiyapawan.pokedex.utility.TypeIcon
 import com.rajotiyapawan.pokedex.utility.convertHeightToFeetInches
 import com.rajotiyapawan.pokedex.utility.convertWeightToKg
 import com.rajotiyapawan.pokedex.utility.convertWeightToLbs
@@ -79,7 +76,11 @@ fun AboutSpecies(
             AboutBodyMeasurements(
                 Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp), data.height, data.weight, malePercentage = aboutData.malePercentage, femalePercentage = aboutData.femalePercentage
+                    .padding(top = 12.dp),
+                data.height,
+                data.weight,
+                malePercentage = aboutData.malePercentage,
+                femalePercentage = aboutData.femalePercentage
             )
         }
     }
@@ -89,26 +90,22 @@ fun AboutSpecies(
 private fun AboutPokemonTypes(modifier: Modifier = Modifier, types: ArrayList<PokeTypes>?, color: List<Color>) {
     Row(modifier, horizontalArrangement = Arrangement.Center) {
         types?.forEachIndexed { index, type ->
-            Box(
-                Modifier
+            TypeIcon(
+                type.type?.name ?: "", Modifier
                     .padding(horizontal = 4.dp)
-                    .background(color = color[index], shape = RoundedCornerShape(50))
-                    .padding(horizontal = 12.dp, vertical = 3.dp)
-            ) {
-                Text(
-                    "${type.type?.name?.capitalize()}",
-                    color = Color.White,
-                    fontFamily = getFontFamily(weight = FontWeight.SemiBold),
-                    fontSize = 12.sp,
-                    lineHeight = 13.sp
-                )
-            }
+            )
         }
     }
 }
 
 @Composable
-private fun AboutBodyMeasurements(modifier: Modifier = Modifier, height: Int?, weight: Int?, malePercentage: Double, femalePercentage: Double) {
+private fun AboutBodyMeasurements(
+    modifier: Modifier = Modifier,
+    height: Int?,
+    weight: Int?,
+    malePercentage: Double,
+    femalePercentage: Double
+) {
     Row(modifier, horizontalArrangement = Arrangement.SpaceBetween) {
         height?.let {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

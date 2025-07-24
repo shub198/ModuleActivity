@@ -16,7 +16,8 @@ data class ChainDto(
 fun ChainDto.toChain(): Chain {
     return Chain(
         evolves_to?.map { it.toChain() } ?: listOf(),
-        species
+        species,
+        evolution_details
     )
 }
 
@@ -47,5 +48,6 @@ data class PokemonEvolution(
 
 data class Chain(
     val evolvesTo: List<Chain>,
-    val species: NameItem
+    val species: NameItem,
+    val evolutionDetails: List<EvolutionDetail>
 )
