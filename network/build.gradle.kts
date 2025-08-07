@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.rajotiyapawan.network"
+    namespace = "com.pokemonApp.network"
     compileSdk = 35
 
     defaultConfig {

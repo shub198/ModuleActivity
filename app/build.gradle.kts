@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.rajotiyapawan.moduleactivity"
+    namespace = "com.pokemonApp.moduleactivity"
     compileSdk = 35
 
     defaultConfig {

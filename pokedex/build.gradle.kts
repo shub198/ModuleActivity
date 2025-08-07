@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.rajotiyapawan.pokedex"
+    namespace = "com.pokemonApp.pokedex"
     compileSdk = 35
 
     defaultConfig {
