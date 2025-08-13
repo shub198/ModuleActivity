@@ -8,7 +8,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.rajotiyapawan.moduleactivity"
+        applicationId = "com.pokemonApp.moduleactivity"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
